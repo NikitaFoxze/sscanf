@@ -105,33 +105,41 @@ jobs:
   create-release-packages:
     runs-on: windows-latest
     needs: [build-windows-release, build-linux-release]
-    if: startsWith(github.ref, 'refs/tags/v')
     
     steps:
       - name: Download Windows artifacts
         uses: actions/download-artifact@v4
         with:
           name: windows-build
-          
+        
       - name: Download Linux artifacts
         uses: actions/download-artifact@v4
         with:
           name: linux-build
-          
+        
+      - name: List downloaded files (debug)
+        run: dir /b
+        
       - name: Get version from tag
         id: get_version
         run: |
-          $version = $env:GITHUB_REF -replace 'refs/tags/v',''
+          if ("$env:GITHUB_REF" -like "refs/tags/v*") {
+            $version = $env:GITHUB_REF -replace 'refs/tags/v',''
+          } else {
+            $version = $env:GITHUB_SHA.Substring(0, 7)
+          }
           echo "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
           echo "Version: $version"
-          
+            
       - name: Install 7-Zip
-        run: |
-          choco install 7zip -y
-          
+        run: choco install 7zip -y
+            
       - name: Create Windows package
         run: |
-          # Создаем структуру для Windows
+          dir /b
+          dir /b *.dll
+          dir /b *.inc
+          
           mkdir windows
           cd windows
           
@@ -139,6 +147,7 @@ jobs:
           copy ..\LICENSE LICENSE
           copy ..\pawn.json pawn.json
           copy ..\README.md README.md
+          copy ..\sscanf2.inc .\
           
           mkdir components
           copy ..\sscanf.dll components\sscanf.dll
@@ -158,13 +167,13 @@ jobs:
           copy ..\..\sscanf2.inc include\sscanf2.inc
           cd ..
           
-          # Создаем архив
           7z a -tzip windows-$env:VERSION.zip *
           cd ..
-          
+            
       - name: Create Linux package
         run: |
-          # Создаем структуру для Linux
+          dir /b *.so
+          
           mkdir linux
           cd linux
           
@@ -172,6 +181,7 @@ jobs:
           copy ..\LICENSE LICENSE
           copy ..\pawn.json pawn.json
           copy ..\README.md README.md
+          copy ..\sscanf2.inc .\
           
           mkdir components
           copy ..\sscanf.so components\sscanf.so
@@ -191,30 +201,13 @@ jobs:
           copy ..\..\sscanf2.inc include\sscanf2.inc
           cd ..
           
-          # Создаем tar.gz архив
           7z a -ttar -so -an * | 7z a -si linux-$env:VERSION.tar.gz
           cd ..
-          
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+            
+      - name: Upload release packages
+        uses: actions/upload-artifact@v4
         with:
-          files: |
+          name: release-packages
+          path: |
             windows-$env:VERSION.zip
             linux-$env:VERSION.tar.gz
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: |
-            Automated release packages built from GitHub Actions
-            
-            ## Windows
-            - **windows-${{ env.VERSION }}.zip**: Complete package with DLL and includes
-            
-            ## Linux
-            - **linux-${{ env.VERSION }}.tar.gz**: Complete package with SO and includes
-            
-            ### Contents:
-            - Plugin files (amxsscanf.dll/so)
-            - Components directory
-            - Plugins directory
-            - Pawno/Qawno include files
-            - Documentation
