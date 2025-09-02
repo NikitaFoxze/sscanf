@@ -3,12 +3,11 @@ name: Build and Release
 on:
   workflow_dispatch:
   push:
-    tags: ['v*']  # Запускаем релиз только при тегах
-  push:
     branches:
       - "*"
       - "*/*"
       - "**"
+    tags: ['v*']
   pull_request:
     branches:
       - "*"
@@ -103,7 +102,6 @@ jobs:
             pawn.json
             README.md
 
-  # НОВЫЙ JOB ДЛЯ СОЗДАНИЯ РЕЛИЗНЫХ ПАКЕТОВ
   create-release-packages:
     runs-on: windows-latest
     needs: [build-windows-release, build-linux-release]
@@ -125,6 +123,7 @@ jobs:
         run: |
           $version = $env:GITHUB_REF -replace 'refs/tags/v',''
           echo "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "Version: $version"
           
       - name: Install 7-Zip
         run: |
