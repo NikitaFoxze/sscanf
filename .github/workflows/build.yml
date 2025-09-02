@@ -1,7 +1,9 @@
-name: Build
+name: Build and Release
 
 on:
   workflow_dispatch:
+  push:
+    tags: ['v*']  # Запускаем релиз только при тегах
   push:
     branches:
       - "*"
@@ -44,8 +46,13 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: sscanf-win-release
-          path: build/Release/sscanf.dll
+          name: windows-build
+          path: |
+            build/Release/sscanf.dll
+            sscanf2.inc
+            LICENSE
+            pawn.json
+            README.md
 
   build-linux-release:
     runs-on: ubuntu-latest
@@ -80,13 +87,135 @@ jobs:
           cd build
           cmake --build . --config Release
 
-      - name: Rename libsscanf.so to sscanf.so
+      - name: Rename and upload artifacts
         run: |
           cd build
           mv ./libsscanf.so ./sscanf.so
-
+          
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: sscanf-linux-release
-          path: build/sscanf.so
+          name: linux-build
+          path: |
+            build/sscanf.so
+            sscanf2.inc
+            LICENSE
+            pawn.json
+            README.md
+
+  # НОВЫЙ JOB ДЛЯ СОЗДАНИЯ РЕЛИЗНЫХ ПАКЕТОВ
+  create-release-packages:
+    runs-on: windows-latest
+    needs: [build-windows-release, build-linux-release]
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-build
+          
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-build
+          
+      - name: Get version from tag
+        id: get_version
+        run: |
+          $version = $env:GITHUB_REF -replace 'refs/tags/v',''
+          echo "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+          
+      - name: Install 7-Zip
+        run: |
+          choco install 7zip -y
+          
+      - name: Create Windows package
+        run: |
+          # Создаем структуру для Windows
+          mkdir windows
+          cd windows
+          
+          copy ..\sscanf.dll amxsscanf.dll
+          copy ..\LICENSE LICENSE
+          copy ..\pawn.json pawn.json
+          copy ..\README.md README.md
+          
+          mkdir components
+          copy ..\sscanf.dll components\sscanf.dll
+          
+          mkdir plugins
+          copy ..\sscanf.dll plugins\sscanf.dll
+          
+          mkdir pawno
+          cd pawno
+          mkdir include
+          copy ..\..\sscanf2.inc include\sscanf2.inc
+          cd ..
+          
+          mkdir qawno
+          cd qawno
+          mkdir include
+          copy ..\..\sscanf2.inc include\sscanf2.inc
+          cd ..
+          
+          # Создаем архив
+          7z a -tzip windows-$env:VERSION.zip *
+          cd ..
+          
+      - name: Create Linux package
+        run: |
+          # Создаем структуру для Linux
+          mkdir linux
+          cd linux
+          
+          copy ..\sscanf.so amxsscanf.so
+          copy ..\LICENSE LICENSE
+          copy ..\pawn.json pawn.json
+          copy ..\README.md README.md
+          
+          mkdir components
+          copy ..\sscanf.so components\sscanf.so
+          
+          mkdir plugins
+          copy ..\sscanf.so plugins\sscanf.so
+          
+          mkdir pawno
+          cd pawno
+          mkdir include
+          copy ..\..\sscanf2.inc include\sscanf2.inc
+          cd ..
+          
+          mkdir qawno
+          cd qawno
+          mkdir include
+          copy ..\..\sscanf2.inc include\sscanf2.inc
+          cd ..
+          
+          # Создаем tar.gz архив
+          7z a -ttar -so -an * | 7z a -si linux-$env:VERSION.tar.gz
+          cd ..
+          
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            windows-$env:VERSION.zip
+            linux-$env:VERSION.tar.gz
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            Automated release packages built from GitHub Actions
+            
+            ## Windows
+            - **windows-${{ env.VERSION }}.zip**: Complete package with DLL and includes
+            
+            ## Linux
+            - **linux-${{ env.VERSION }}.tar.gz**: Complete package with SO and includes
+            
+            ### Contents:
+            - Plugin files (amxsscanf.dll/so)
+            - Components directory
+            - Plugins directory
+            - Pawno/Qawno include files
+            - Documentation
