@@ -218,5 +218,5 @@ jobs:
         with:
           name: release-packages
           path: |
-            windows-build/windows-$env:VERSION.zip
-            linux-build/linux-$env:VERSION.tar.gz
+            windows-$env:VERSION.zip
+            linux-$env:VERSION.tar.gz
