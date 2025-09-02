@@ -111,25 +111,20 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: windows-build
-          path: ./
+          path: windows-files/
         
       - name: Download Linux artifacts
         uses: actions/download-artifact@v4
         with:
           name: linux-build
-          path: ./
+          path: linux-files/
         
       - name: Check files structure
         run: |
-          echo "=== Files in current directory ==="
-          Get-ChildItem -Path . -Force
-          echo "=== Checking for required files ==="
-          if (Test-Path "sscanf.dll") { echo "✓ sscanf.dll found" } else { echo "✗ sscanf.dll missing" }
-          if (Test-Path "sscanf.so") { echo "✓ sscanf.so found" } else { echo "✗ sscanf.so missing" }
-          if (Test-Path "sscanf2.inc") { echo "✓ sscanf2.inc found" } else { echo "✗ sscanf2.inc missing" }
-          if (Test-Path "LICENSE") { echo "✓ LICENSE found" } else { echo "✗ LICENSE missing" }
-          if (Test-Path "pawn.json") { echo "✓ pawn.json found" } else { echo "✗ pawn.json missing" }
-          if (Test-Path "README.md") { echo "✓ README.md found" } else { echo "✗ README.md missing" }
+          echo "=== Windows files ==="
+          Get-ChildItem -Path "windows-files" -Force
+          echo "=== Linux files ==="
+          Get-ChildItem -Path "linux-files" -Force
         
       - name: Get version
         run: |
@@ -142,33 +137,33 @@ jobs:
             
       - name: Create Windows package
         run: |
-          if (-not (Test-Path "sscanf.dll")) { throw "sscanf.dll not found!" }
+          if (-not (Test-Path "windows-files/sscanf.dll")) { throw "Windows sscanf.dll not found!" }
           
           mkdir windows-package
           cd windows-package
           
-          copy ..\sscanf.dll amxsscanf.dll
-          copy ..\LICENSE LICENSE
-          copy ..\pawn.json pawn.json
-          copy ..\README.md README.md
-          copy ..\sscanf2.inc .\
+          copy ..\windows-files\sscanf.dll amxsscanf.dll
+          copy ..\windows-files\LICENSE LICENSE
+          copy ..\windows-files\pawn.json pawn.json
+          copy ..\windows-files\README.md README.md
+          copy ..\windows-files\sscanf2.inc .\
           
           mkdir components
-          copy ..\sscanf.dll components\sscanf.dll
+          copy ..\windows-files\sscanf.dll components\sscanf.dll
           
           mkdir plugins
-          copy ..\sscanf.dll plugins\sscanf.dll
+          copy ..\windows-files\sscanf.dll plugins\sscanf.dll
           
           mkdir pawno
           cd pawno
           mkdir include
-          copy ..\..\sscanf2.inc include\sscanf2.inc
+          copy ..\..\windows-files\sscanf2.inc include\sscanf2.inc
           cd ..
           
           mkdir qawno
           cd qawno
           mkdir include
-          copy ..\..\sscanf2.inc include\sscanf2.inc
+          copy ..\..\windows-files\sscanf2.inc include\sscanf2.inc
           cd ..
           
           7z a -tzip windows-$env:VERSION.zip *
@@ -176,33 +171,33 @@ jobs:
             
       - name: Create Linux package
         run: |
-          if (-not (Test-Path "sscanf.so")) { throw "sscanf.so not found!" }
+          if (-not (Test-Path "linux-files/sscanf.so")) { throw "Linux sscanf.so not found!" }
           
           mkdir linux-package
           cd linux-package
           
-          copy ..\sscanf.so amxsscanf.so
-          copy ..\LICENSE LICENSE
-          copy ..\pawn.json pawn.json
-          copy ..\README.md README.md
-          copy ..\sscanf2.inc .\
+          copy ..\linux-files\sscanf.so amxsscanf.so
+          copy ..\linux-files\LICENSE LICENSE
+          copy ..\linux-files\pawn.json pawn.json
+          copy ..\linux-files\README.md README.md
+          copy ..\linux-files\sscanf2.inc .\
           
           mkdir components
-          copy ..\sscanf.so components\sscanf.so
+          copy ..\linux-files\sscanf.so components\sscanf.so
           
           mkdir plugins
-          copy ..\sscanf.so plugins\sscanf.so
+          copy ..\linux-files\sscanf.so plugins\sscanf.so
           
           mkdir pawno
           cd pawno
           mkdir include
-          copy ..\..\sscanf2.inc include\sscanf2.inc
+          copy ..\..\linux-files\sscanf2.inc include\sscanf2.inc
           cd ..
           
           mkdir qawno
           cd qawno
           mkdir include
-          copy ..\..\sscanf2.inc include\sscanf2.inc
+          copy ..\..\linux-files\sscanf2.inc include\sscanf2.inc
           cd ..
           
           7z a -ttar -so -an * | 7z a -si linux-$env:VERSION.tar.gz
