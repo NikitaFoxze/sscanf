@@ -122,9 +122,9 @@ jobs:
       - name: Check files structure
         run: |
           echo "=== Windows files ==="
-          Get-ChildItem -Path "windows-files" -Force
+          Get-ChildItem -Path "windows-files" -Recurse -Force
           echo "=== Linux files ==="
-          Get-ChildItem -Path "linux-files" -Force
+          Get-ChildItem -Path "linux-files" -Recurse -Force
         
       - name: Get version
         run: |
@@ -137,22 +137,27 @@ jobs:
             
       - name: Create Windows package
         run: |
-          if (-not (Test-Path "windows-files/sscanf.dll")) { throw "Windows sscanf.dll not found!" }
+          $dllPath = "windows-files/build/Release/sscanf.dll"
+          if (-not (Test-Path $dllPath)) { 
+            Write-Host "Available files:"
+            Get-ChildItem -Path "windows-files" -Recurse
+            throw "Windows sscanf.dll not found at: $dllPath" 
+          }
           
           mkdir windows-package
           cd windows-package
           
-          copy ..\windows-files\sscanf.dll amxsscanf.dll
+          copy "..\$dllPath" amxsscanf.dll
           copy ..\windows-files\LICENSE LICENSE
           copy ..\windows-files\pawn.json pawn.json
           copy ..\windows-files\README.md README.md
           copy ..\windows-files\sscanf2.inc .\
           
           mkdir components
-          copy ..\windows-files\sscanf.dll components\sscanf.dll
+          copy "..\$dllPath" components\sscanf.dll
           
           mkdir plugins
-          copy ..\windows-files\sscanf.dll plugins\sscanf.dll
+          copy "..\$dllPath" plugins\sscanf.dll
           
           mkdir pawno
           cd pawno
@@ -171,22 +176,27 @@ jobs:
             
       - name: Create Linux package
         run: |
-          if (-not (Test-Path "linux-files/sscanf.so")) { throw "Linux sscanf.so not found!" }
+          $soPath = "linux-files/build/sscanf.so"
+          if (-not (Test-Path $soPath)) { 
+            Write-Host "Available files:"
+            Get-ChildItem -Path "linux-files" -Recurse
+            throw "Linux sscanf.so not found at: $soPath" 
+          }
           
           mkdir linux-package
           cd linux-package
           
-          copy ..\linux-files\sscanf.so amxsscanf.so
+          copy "..\$soPath" amxsscanf.so
           copy ..\linux-files\LICENSE LICENSE
           copy ..\linux-files\pawn.json pawn.json
           copy ..\linux-files\README.md README.md
           copy ..\linux-files\sscanf2.inc .\
           
           mkdir components
-          copy ..\linux-files\sscanf.so components\sscanf.so
+          copy "..\$soPath" components\sscanf.so
           
           mkdir plugins
-          copy ..\linux-files\sscanf.so plugins\sscanf.so
+          copy "..\$soPath" plugins\sscanf.so
           
           mkdir pawno
           cd pawno
@@ -208,5 +218,5 @@ jobs:
         with:
           name: release-packages
           path: |
-            windows-$env:VERSION.zip
-            linux-$env:VERSION.tar.gz
+            windows-package/windows-$env:VERSION.zip
+            linux-package/linux-$env:VERSION.tar.gz
