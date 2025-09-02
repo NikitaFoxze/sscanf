@@ -117,17 +117,33 @@ jobs:
         with:
           name: linux-build
         
-      - name: List downloaded files (debug)
-        run: dir /b
-        
-      - name: Get version from tag
-        id: get_version
+      - name: Check current directory and list files
         run: |
-          if ("$env:GITHUB_REF" -like "refs/tags/v*") {
-            $version = $env:GITHUB_REF -replace 'refs/tags/v',''
-          } else {
-            $version = $env:GITHUB_SHA.Substring(0, 7)
+          echo "Current directory: $pwd"
+          echo "=== Files in root ==="
+          Get-ChildItem -Path . -Force
+          echo "=== Windows-build files ==="
+          if (Test-Path "windows-build") { Get-ChildItem -Path "windows-build" -Force }
+          echo "=== Linux-build files ==="  
+          if (Test-Path "linux-build") { Get-ChildItem -Path "linux-build" -Force }
+        
+      - name: Move files to workspace root
+        run: |
+          if (Test-Path "windows-build") {
+            Move-Item -Path "windows-build\*" -Destination "." -Force
+            Remove-Item -Path "windows-build" -Recurse -Force
           }
+          if (Test-Path "linux-build") {
+            Move-Item -Path "linux-build\*" -Destination "." -Force
+            Remove-Item -Path "linux-build" -Recurse -Force
+          }
+          
+          echo "=== Files after moving ==="
+          Get-ChildItem -Path . -Force
+        
+      - name: Get version
+        run: |
+          $version = $env:GITHUB_SHA.Substring(0, 7)
           echo "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
           echo "Version: $version"
             
@@ -136,9 +152,9 @@ jobs:
             
       - name: Create Windows package
         run: |
-          dir /b
-          dir /b *.dll
-          dir /b *.inc
+          if (-not (Test-Path "sscanf.dll")) { throw "sscanf.dll not found!" }
+          if (-not (Test-Path "sscanf2.inc")) { throw "sscanf2.inc not found!" }
+          if (-not (Test-Path "LICENSE")) { throw "LICENSE not found!" }
           
           mkdir windows
           cd windows
@@ -147,7 +163,6 @@ jobs:
           copy ..\LICENSE LICENSE
           copy ..\pawn.json pawn.json
           copy ..\README.md README.md
-          copy ..\sscanf2.inc .\
           
           mkdir components
           copy ..\sscanf.dll components\sscanf.dll
@@ -172,7 +187,7 @@ jobs:
             
       - name: Create Linux package
         run: |
-          dir /b *.so
+          if (-not (Test-Path "sscanf.so")) { throw "sscanf.so not found!" }
           
           mkdir linux
           cd linux
@@ -181,7 +196,6 @@ jobs:
           copy ..\LICENSE LICENSE
           copy ..\pawn.json pawn.json
           copy ..\README.md README.md
-          copy ..\sscanf2.inc .\
           
           mkdir components
           copy ..\sscanf.so components\sscanf.so
