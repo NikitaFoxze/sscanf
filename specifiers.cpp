@@ -290,7 +290,7 @@ bool
 				// there's no point - it's just extra work and we know it's OK.
 				// We set the null before incrementing to ensure it's included
 				// in the output.
-				SscanfWarning(2, "String buffer overflow.");
+				//SscanfWarning(2, "String buffer overflow.");
 				// Removed the break - discard the rest of the string.
 				//break;
 			}
@@ -330,7 +330,7 @@ bool
 			++i;
 			if (i == length)
 			{
-				SscanfWarning(2, "String buffer overflow.");
+				//SscanfWarning(2, "String buffer overflow.");
 			}
 			else if (i < length)
 			{
@@ -365,7 +365,7 @@ bool
 			++i;
 			if (i == length)
 			{
-				SscanfWarning(2, "String buffer overflow.");
+				//SscanfWarning(2, "String buffer overflow.");
 			}
 			else if (i < length)
 			{
@@ -1369,7 +1369,7 @@ int
 	// Add a null terminator.
 	if (i >= *length)
 	{
-		SscanfWarning(2, "String buffer overflow.");
+		//SscanfWarning(2, "String buffer overflow.");
 		*(*ret + *length - 1) = '\0';
 	}
 	else
